@@ -12,6 +12,6 @@ public class XPathClientFactory implements RemoteFactory {
 		Params.notNull(implementationURL, "Implementation URL");
 		Params.notNull(interfaceClass, "Interface class");
 		// at this point we know that interface class is a super of returned instance class so is safe to suppress warning
-		return (I) Proxy.newProxyInstance(interfaceClass.getClassLoader(), new Class<?>[] { interfaceClass }, new XPathTransactionHandler(implementationURL));
+		return (I) Proxy.newProxyInstance(interfaceClass.getClassLoader(), new Class<?>[] { interfaceClass }, new XPathTransactionHandler(interfaceClass, implementationURL));
 	}
 }

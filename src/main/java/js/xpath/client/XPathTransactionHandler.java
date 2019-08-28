@@ -3,8 +3,10 @@ package js.xpath.client;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.ws.rs.Path;
@@ -16,15 +18,20 @@ import js.lang.BugError;
 import js.log.Log;
 import js.log.LogFactory;
 import js.util.Classes;
+import js.util.Strings;
 
 public class XPathTransactionHandler implements InvocationHandler {
 	private static final Log log = LogFactory.getLog(XPathTransactionHandler.class);
 
 	private final DocumentBuilder builder;
+	private final ConnectionFactory connectionFactory;
+	private final Class<?> interfaceClass;
 	private final String implementationURL;
 
-	public XPathTransactionHandler(String implementationURL) {
+	public XPathTransactionHandler(Class<?> interfaceClass, String implementationURL) {
 		this.builder = Classes.loadService(DocumentBuilder.class);
+		this.connectionFactory = new ConnectionFactory();
+		this.interfaceClass = interfaceClass;
 		this.implementationURL = normalizeURL(implementationURL);
 	}
 
@@ -34,8 +41,10 @@ public class XPathTransactionHandler implements InvocationHandler {
 	 * @param builder
 	 * @param implementationURL
 	 */
-	public XPathTransactionHandler(DocumentBuilder builder, String implementationURL) {
+	public XPathTransactionHandler(DocumentBuilder builder, ConnectionFactory connectionFactory, Class<?> interfaceClass, String implementationURL) {
 		this.builder = builder;
+		this.connectionFactory = connectionFactory;
+		this.interfaceClass = interfaceClass;
 		this.implementationURL = normalizeURL(implementationURL);
 	}
 
@@ -50,7 +59,18 @@ public class XPathTransactionHandler implements InvocationHandler {
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 		URL url = new URL(implementationURL + path(method, args));
 		log.debug("Load document from |%s|.", url);
-		Document document = builder.loadHTML(url);
+
+		HttpURLConnection connection = connectionFactory.openConnection(url);
+		for (Map.Entry<String, String> entry : headers(interfaceClass).entrySet()) {
+			connection.setRequestProperty(entry.getKey(), entry.getValue());
+		}
+
+		Document document = null;
+		try {
+			document = builder.loadHTML(connection.getInputStream());
+		} finally {
+			connection.disconnect();
+		}
 
 		ResultClass resultClass = null;
 		Mappings mappings = method.getAnnotation(Mappings.class);
@@ -72,6 +92,22 @@ public class XPathTransactionHandler implements InvocationHandler {
 		}
 
 		return object;
+	}
+
+	private static Map<String, String> headers(Class<?> interfaceClass) {
+		Map<String, String> headers = new HashMap<>();
+		Header headerAnnotation = interfaceClass.getAnnotation(Header.class);
+		if (headerAnnotation == null) {
+			return headers;
+		}
+
+		for (String value : headerAnnotation.value()) {
+			// Strings.split takes care to trim returned items
+			List<String> pair = Strings.split(value, ':');
+			// first pair item is the header name and the second is the header value
+			headers.put(pair.get(0), pair.get(1));
+		}
+		return headers;
 	}
 
 	private static String path(Method method, Object[] args) {
