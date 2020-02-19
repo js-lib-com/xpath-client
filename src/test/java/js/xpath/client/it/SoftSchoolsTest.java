@@ -31,7 +31,7 @@ public class SoftSchoolsTest {
 
 	@Before
 	public void beforeTest() {
-		softSchools = factory.getRemoteInstance("http://www.softschools.com/", SoftSchools.class);
+		softSchools = factory.getRemoteInstance("https://www.softschools.com/", SoftSchools.class);
 	}
 
 	@Test

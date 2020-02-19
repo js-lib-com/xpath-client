@@ -1,5 +1,6 @@
 package js.xpath.client;
 
+import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
@@ -63,6 +64,18 @@ public class XPathTransactionHandler implements InvocationHandler {
 		HttpURLConnection connection = connectionFactory.openConnection(url);
 		for (Map.Entry<String, String> entry : headers(interfaceClass).entrySet()) {
 			connection.setRequestProperty(entry.getKey(), entry.getValue());
+		}
+
+		if (connection.getResponseCode() != 200) {
+			// there is an inconsistency on HttpURLConnection API:
+			// - 301 uses input stream, in which case error stream is null 
+			// - 404 uses error stream
+			InputStream inputStream = connection.getErrorStream();
+			if (inputStream == null) {
+				inputStream = connection.getInputStream();
+			}
+			builder.loadHTML(inputStream).dump();
+			return null;
 		}
 
 		Document document = null;
