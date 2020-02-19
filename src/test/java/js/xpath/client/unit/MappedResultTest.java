@@ -60,6 +60,7 @@ public class MappedResultTest {
 		when(document.getByXPath("//*[class='name']")).thenReturn(textElement);
 		when(document.getByXPath("//li[class='link']/a")).thenReturn(attributeElement);
 
+		when(connection.getResponseCode()).thenReturn(200);
 		when(builder.loadHTML((InputStream)any())).thenReturn(document);
 
 		Object proxy = new Object();
