@@ -28,25 +28,22 @@ public class XPathTransactionHandler implements InvocationHandler {
 	private final ConnectionFactory connectionFactory;
 	private final Class<?> interfaceClass;
 	private final String implementationURL;
+	private final String defaultPathFormat;
 
 	public XPathTransactionHandler(Class<?> interfaceClass, String implementationURL) {
-		this.builder = Classes.loadService(DocumentBuilder.class);
-		this.connectionFactory = new ConnectionFactory();
-		this.interfaceClass = interfaceClass;
-		this.implementationURL = normalizeURL(implementationURL);
+		this(Classes.loadService(DocumentBuilder.class), new ConnectionFactory(), interfaceClass,
+				normalizeURL(implementationURL));
 	}
 
-	/**
-	 * Test constructor.
-	 * 
-	 * @param builder
-	 * @param implementationURL
-	 */
-	public XPathTransactionHandler(DocumentBuilder builder, ConnectionFactory connectionFactory, Class<?> interfaceClass, String implementationURL) {
+	public XPathTransactionHandler(DocumentBuilder builder, ConnectionFactory connectionFactory,
+			Class<?> interfaceClass, String implementationURL) {
 		this.builder = builder;
 		this.connectionFactory = connectionFactory;
 		this.interfaceClass = interfaceClass;
 		this.implementationURL = normalizeURL(implementationURL);
+
+		Path pathAnnotation = interfaceClass.getAnnotation(Path.class);
+		this.defaultPathFormat = pathAnnotation != null ? pathAnnotation.value() : null;
 	}
 
 	private static String normalizeURL(String implementationURL) {
@@ -58,7 +55,7 @@ public class XPathTransactionHandler implements InvocationHandler {
 
 	@Override
 	public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-		URL url = new URL(implementationURL + path(method, args));
+		URL url = new URL(implementationURL + path(defaultPathFormat, method, args));
 		log.debug("Load document from |%s|.", url);
 
 		HttpURLConnection connection = connectionFactory.openConnection(url);
@@ -68,7 +65,7 @@ public class XPathTransactionHandler implements InvocationHandler {
 
 		if (connection.getResponseCode() != 200) {
 			// there is an inconsistency on HttpURLConnection API:
-			// - 301 uses input stream, in which case error stream is null 
+			// - 301 uses input stream, in which case error stream is null
 			// - 404 uses error stream
 			InputStream inputStream = connection.getErrorStream();
 			if (inputStream == null) {
@@ -96,7 +93,8 @@ public class XPathTransactionHandler implements InvocationHandler {
 		Object object = null;
 		XPath xpath = method.getAnnotation(XPath.class);
 		if (xpath != null) {
-			object = ValueHandler.getInstance(method.getGenericReturnType()).getValue(document, new ResultMethod(method, xpath));
+			object = ValueHandler.getInstance(method.getGenericReturnType()).getValue(document,
+					new ResultMethod(method, xpath));
 		} else {
 			object = resultClass.newInstance();
 			for (ResultClass.Field field : resultClass.getFields()) {
@@ -123,13 +121,18 @@ public class XPathTransactionHandler implements InvocationHandler {
 		return headers;
 	}
 
-	private static String path(Method method, Object[] args) {
+	private static String path(String defaultPathFormat, Method method, Object[] args) {
+		String pathFormat = null;
 		Path pathAnnotation = method.getAnnotation(Path.class);
-		if (pathAnnotation == null) {
-			throw new BugError("Missing <Path> annotation from method |%s|.", method);
+		if (pathAnnotation != null) {
+			pathFormat = pathAnnotation.value();
 		}
-
-		String pathFormat = pathAnnotation.value();
+		if (pathFormat == null) {
+			pathFormat = defaultPathFormat;
+		}
+		if (pathFormat == null) {
+			throw new BugError("Missing <Path> annotation from method |%s| or from parent class.", method);
+		}
 
 		Map<String, Object> variables = new HashMap<>();
 

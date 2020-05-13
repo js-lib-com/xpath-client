@@ -17,6 +17,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -30,6 +31,7 @@ import js.xpath.client.Mappings;
 import js.xpath.client.XPathTransactionHandler;
 
 @RunWith(MockitoJUnitRunner.class)
+@Ignore
 public class MappedResultTest {
 	@Mock
 	private DocumentBuilder builder;
