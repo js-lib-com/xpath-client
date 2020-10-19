@@ -1,8 +1,8 @@
 package js.xpath.client.unit;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -63,7 +63,7 @@ public class MappedResultTest {
 		when(document.getByXPath("//li[class='link']/a")).thenReturn(attributeElement);
 
 		when(connection.getResponseCode()).thenReturn(200);
-		when(builder.loadHTML((InputStream)any())).thenReturn(document);
+		when(builder.loadHTML((InputStream) any())).thenReturn(document);
 
 		Object proxy = new Object();
 		Method method = Client.class.getMethod("getDataObject", String.class);
