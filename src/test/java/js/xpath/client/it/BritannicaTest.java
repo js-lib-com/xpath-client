@@ -43,7 +43,7 @@ public class BritannicaTest {
 
 	private interface Britannica {
 		@Path("{path}")
-		@XPath(value = "//*[@id='article-content']", type = Type.TEXT)
+		@XPath(value = "//*[contains(concat(' ', normalize-space(@class), ' '),' article-content ')]", type = Type.TEXT)
 		String getArticle(@PathParam("path") String path);
 	}
 }

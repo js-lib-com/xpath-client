@@ -77,7 +77,7 @@ public class SoftSchoolsTest {
 
 	private interface SoftSchools {
 		@Path("facts/{path}/")
-		@XPath("//*[@class='factsmaintbl']/*/TD")
+		@XPath("//*[@class='factsmaintbl']//TD")
 		String getDescription(@PathParam("path") String path);
 
 		@Path("facts/{path}/")
@@ -96,7 +96,7 @@ public class SoftSchoolsTest {
 		@XPath("//*[@id='hdrcnt']/H1")
 		private String title;
 
-		@XPath("//*[@class='factsmaintbl']/*/TD")
+		@XPath("//*[@class='factsmaintbl']//TD")
 		private String description;
 
 		@XPath("//*[@class='fact_topbar']/*/*/TD")
